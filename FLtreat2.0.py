@@ -1,3 +1,5 @@
+import functions
+
 from PyQt5 import uic, QtWidgets
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
@@ -304,31 +306,22 @@ class paint(QtWidgets.QWidget):
 
 class Ui(QtWidgets.QMainWindow, Form):
 
-    def __init__(self):
+    def setup_data(self):
+        self.path_geom, self.path_limits, self.path_cmp, self.path_sensor, self.path_work = functions.set_path(
+            self.task_name)
+        self.rnd, self.geom_files, self.geom_minH, self.geom_maxH = functions.read_rnd(self.path_geom)
+        self.geom = functions.read_geom(self.geom_files)
 
-        super(Ui,self).__init__()
-        self.setupUi(self)
+        self.H2, self.Time, self.O2, self.v, self.p, self.t, self.regims = functions.read_limitsfiles(self.path_limits)
+        self.combust_i, self.combust_box, self.det_i, self.det_box = functions.treat_files(self.regims)
+        self.fire_i_max, self.fire_box_max, self.fire_i_recommend, self.fire_box_recommend = functions.find_max(self.H2,
+                                                                                                                self.O2,
+                                                                                                                self.combust_i,
+                                                                                                                self.combust_box,
+                                                                                                                self.det_i,
+                                                                                                                self.det_box)
 
-        self.sensor_points,self.printFire,self.tabname_for_screen = [],[0,0,0],[]
-        self.tab_paint = {}
-
-        self.task_name = 'firecon'
-        self.work_dir = os.getcwd().split('\\')[-1]
-        self.comboBox.addItem(self.work_dir)
-
-        self.path_geom, self.path_limits, self.path_cmp, self.path_sensor, self.path_work = self.set_path(self.task_name)
-        self.rnd, self.geom_files, self.geom_minH, self.geom_maxH = self.read_rnd(self.path_geom)
-        self.geom = self.read_geom(self.geom_files)
-
-        self.H2, self.Time, self.O2, self.v, self.p, self.t, self.regims = self.read_limitsfiles(self.path_limits)
-        self.combust_i, self.combust_box, self.det_i, self.det_box = self.treat_files(self.regims)
-        self.fire_i_max, self.fire_box_max, self.fire_i_recommend, self.fire_box_recommend = self.find_max(self.H2,self.O2,self.combust_i,self.combust_box,self.det_i,self.det_box)
-        self.sostav = self.set_sostav(self.fire_i_recommend)
-
-        self.MyTable()
-        self.SetTabs(self.geom_files, self.geom, self.geom_minH, self.geom_maxH)
-        self.setSlider()
-
+    def setup_buttons(self):
         self.deleteButton.clicked.connect(self.button_deleteClicked)
         self.writeButton.clicked.connect(self.button_writeClicked)
         self.PrnScrButton.clicked.connect(self.button_PrnScrButton)
@@ -337,6 +330,33 @@ class Ui(QtWidgets.QMainWindow, Form):
         self.writeAllCPButton.clicked.connect(self.button_write_allpoints)
         self.horizontalSlider.valueChanged.connect(self.updateSlider)
         self.openDirButton.clicked.connect(self.getDirectory)
+
+
+    def __init__(self):
+
+        super(Ui, self).__init__()
+        self.setupUi(self)
+
+        self.sensor_points, self.printFire, self.tabname_for_screen = [], [0, 0, 0], []
+        self.tab_paint = {}
+
+        self.task_name = 'firecon'
+        self.work_dir = os.getcwd().split('\\')[-1]
+        self.comboBox.addItem(self.work_dir)
+
+
+        self.setup_data()
+        self.sostav = self.set_sostav(self.fire_i_recommend)
+
+        self.MyTable()
+        self.SetTabs(self.geom_files, self.geom, self.geom_minH, self.geom_maxH)
+        self.setSlider()
+
+        self.setup_buttons()
+
+
+
+
 
     def getDirectory(self):
         p_matrix = {}
@@ -377,6 +397,7 @@ class Ui(QtWidgets.QMainWindow, Form):
 
     def setSlider(self):
         self.label_O2.setText('%1.2f' % (self.horizontalSlider.value()/10) + '%')
+
     def updateSlider(self):
         self.label_O2.setText('%1.2f' % (self.horizontalSlider.value()/10) + '%')
         self.fire_i_max, self.fire_box_max, self.fire_i_recommend, self.fire_box_recommend = self.find_max(self.H2,self.O2,self.combust_i,self.combust_box,self.det_i,self.det_box)
@@ -426,15 +447,8 @@ class Ui(QtWidgets.QMainWindow, Form):
         if name == 'firecon':
             name = '00000'
         return name
-    def set_path(self, task_name):
-        path = task_name
-        path_geom = path + '\\razrez_3d\\geom\\'
-        path_limits = 'limits\\'
-        path_cmp = path + '\\razrez_3d\\_cmp\\'
-        path_sensor = path + '\\razrez_3d\\sensor\\'
-        path_work = path + '\\work\\'
-        return path_geom, path_limits, path_cmp, path_sensor, path_work
-    def set_sostav(self,i):
+
+    def set_sostav(self, i):
         sostav =  {}
         for param,name in zip( (self.H2[i], self.O2[i], self.v[i], self.t[i], self.p[i]),('H2','O2','v','t','p')):
             data = []
@@ -442,10 +456,6 @@ class Ui(QtWidgets.QMainWindow, Form):
             for box in range(1, 151):
                 data.append(param[box])
             sostav[name] = data
-
-
-
-
         return sostav
 
     def update_sensor_from_paint(self):
@@ -457,9 +467,7 @@ class Ui(QtWidgets.QMainWindow, Form):
         window.tabname_for_screen.append(self.sensor_points[-1][4])
         window.sensor_points.append(sensor_coord)
         window.setPointsOnTable()
-        # if self.radioButton.isChecked():
-        #     self.setPrintFireCoord(X, Y, Z)
-        # else:
+
     def update_printfire_from_paint(self):
         prinFire_coord = [0, 0, 0]
         prinFire_coord[0] = (self.printFire[0] / self.dx * 0.495) - 22.5
@@ -473,19 +481,21 @@ class Ui(QtWidgets.QMainWindow, Form):
 
     def button_write_allpoints(self):
         for i, j in zip(self.combust_i, self.combust_box):
-            spisok = self.get_spisok(i, j, self.Time, self.H2, self.O2, self.v, self.p, self.t)
+            spisok = functions.get_spisok(i, j, self.Time, self.H2, self.O2, self.v, self.p, self.t)
             self.add_text_from_spisok('Combustion', spisok)
         for i, j in zip(self.det_i, self.det_box):
-            spisok = self.get_spisok(i, j, self.Time, self.H2, self.O2, self.v, self.p, self.t)
+            spisok = functions.get_spisok(i, j, self.Time, self.H2, self.O2, self.v, self.p, self.t)
             self.add_text_from_spisok('Detonation', spisok)
+
     def button_write_points(self):
         self.add_text('BOX   Time           H2         O2           v             p         t')
         for i, j, k in (self.fire_i_max, self.fire_box_max, 'Maximum'), (self.fire_i_recommend, self.fire_box_recommend, 'Filtered'):
-            spisok = self.get_spisok(i, j, self.Time, self.H2, self.O2, self.v, self.p, self.t)
+            spisok = functions.get_spisok(i, j, self.Time, self.H2, self.O2, self.v, self.p, self.t)
             for check in zip(self.det_i,self.det_box):
                 if i == check[0] and j == check[1]:
                     k +=' Detonation'
             self.add_text_from_spisok(k, spisok)
+
     def button_deleteClicked(self):
         if len(self.sensor_points) > 0:
             del self.sensor_points[-1]
@@ -516,6 +526,7 @@ class Ui(QtWidgets.QMainWindow, Form):
         self.textBrowser.clear()
 
         self.add_text('File creation is complete')
+
     def button_PrnScrButton(self):
         path_name = "Photo_sensors"
 
@@ -529,6 +540,7 @@ class Ui(QtWidgets.QMainWindow, Form):
         for tab in self.tabname_for_screen:
             self.tab_paint[tab].grab().save(path_name + '\\' + tab.split('\\')[3].split('.')[0] + '.png' , 'png')
             self.add_text(path_name+ '/' + tab.split('\\')[3].split('.')[0] + '.png')
+
     def button_PrnScrButtonSostav(self):
         self.plane_paint = {}
         k = 0
@@ -541,14 +553,12 @@ class Ui(QtWidgets.QMainWindow, Form):
             shutil.rmtree(path_name)
             os.mkdir(path_name)
 
-
         plane_list = ['X', 'Y', 'Z']
         for N_coord, plane in enumerate(plane_list):
             for param in 'H2', 'O2', 'v':
                 tab = QtWidgets.QWidget()
                 name = plane + '.' + param
 
-                # tab.setObjectName(name)
                 if plane != 'Z':
                     size_horizont = self.width() / 2.9
                     size_wertical = self.height() * 0.75
@@ -558,7 +568,6 @@ class Ui(QtWidgets.QMainWindow, Form):
                 tab.setFixedWidth(round(size_horizont))
                 tab.setFixedHeight(round(size_wertical))
                 self.tabWidget.insertTab(k, tab, name)
-
 
                 self.plane_paint[plane] = paint_plane(tab, tab.width(), tab.height(), self.geom, self.geom_files,
                                                       self.geom_minH, self.geom_maxH, self.printFire, N_coord, plane,
@@ -570,17 +579,6 @@ class Ui(QtWidgets.QMainWindow, Form):
                 self.tabWidget.removeTab(0)
 
 
-
-
-
-    def get_spisok(self, i, j, Time, H2, O2, v, p, t ):
-        line = [j]
-        for x in Time, H2, O2, v, p, t:
-            if isinstance(x[0], list) == True:
-                line.append(x[i][j])
-            else:
-                line.append(x[i])
-        return line
     def add_text_from_spisok(self, word, spisok):
         data = ''
         for x in spisok:
@@ -590,150 +588,11 @@ class Ui(QtWidgets.QMainWindow, Form):
             data += ' %0.3f' % x + '   '
         data += word
         self.textBrowser.append(data)
+
     def add_text(self, text):
         self.textBrowser.append(text)
 
-
-    def read_limitsfiles(self, path):
-
-        H2 = []
-        O2 = []
-        v = []
-        p = []
-        t = []
-        regims = []
-        Time = []
-
-        files = glob.glob(path + "*.out*") + glob.glob(path + "regims.txt")
-        for file in files:
-            with open(file) as f:
-                data = []
-                next(f)
-                for row in f:
-                    data.append([float(x) for x in row.split()])
-                if file == path + 'C_H2.out':
-                    H2 = data
-                    Time = [row[0] for row in data]
-                if file == path + 'C_O2.out':
-                    O2 = data
-                if file == path + 'C_v.out':
-                    v = data
-                if file == path + 'p.out':
-                    p = data
-                if file == path + 't.out':
-                    t = data
-                if file == path + 'regims.txt':
-                    regims = data
-        return H2,Time,O2,v,p,t,regims
-    def read_geom(self, files_list):
-        geom = {}
-        for file in files_list:
-            with open(file) as f:
-                data_geom = []
-                for row in f:
-                    data_geom.append([int(x) for x in row.split()])
-                geom[file] = data_geom
-        return geom
-    def read_rnd(self, path):
-        rnd_file = glob.glob(path + "rnd*.txt")
-        for file in rnd_file:
-            rnd = []
-            geom_files = []
-            geom_minH = {}
-            geom_maxH = {}
-            with open(file) as f:
-                for row in f:
-                    if row != '\n':
-                        rnd.append(row)
-                        if row.split()[0] == 'FILECOR':
-                            geom_files.append(path + row.split()[1])
-                            geom_minH[path + row.split()[1]] = row.split()[2]
-                            geom_maxH[path + row.split()[1]] = row.split()[3]
-        return rnd, geom_files, geom_minH, geom_maxH
-
-    def treat_files(self, regims):
-        combust_i = []
-        combust_j = []
-        det_i = []
-        det_j = []
-        for i, row in enumerate(regims):
-            for j, x in enumerate(row):
-                if x == 1:
-                    combust_i.append(i)
-                    combust_j.append(j)
-                if x == 3:
-                    det_i.append(i)
-                    det_j.append(j)
-        return combust_i,combust_j,det_i,det_j
-
-    def find_max(self, H2, O2, combust_N_dt, combust_box, det_N_dt, det_box):
-
-        H2_min = 0.00
-        O2_min = self.horizontalSlider.value()/10/100
-
-        O2_max = 0
-        H2_max = H2_min
-        H2_recommend = H2_min
-        O2_recommend = 0
-
-        i_max, j_max, i_recommend, j_recommend = 0,0,0,0
-
-        off_box_list = []
-
-        for i, j in zip(combust_N_dt, combust_box):
-            if j not in off_box_list:
-                if H2[i][j] == H2_max:
-                    if O2[i][j] >= O2_max:
-                        H2_max = H2[i][j]
-                        O2_max = O2[i][j]
-                        i_max = i
-                        j_max = j
-                if H2[i][j] > H2_max:
-                    H2_max = H2[i][j]
-                    O2_max = O2[i][j]
-                    i_max = i
-                    j_max = j
-                if H2[i][j] > H2_recommend and O2[i][j] > O2_min:
-                    H2_recommend = H2[i][j]
-                    O2_recommend = O2[i][j]
-                    i_recommend = i
-                    j_recommend = j
-                if H2[i][j] == H2_recommend and O2[i][j] > O2_min:
-                    if O2[i][j] >= O2_recommend:
-                        H2_recommend = H2[i][j]
-                        O2_recommend = O2[i][j]
-                        i_recommend = i
-                        j_recommend = j
-
-        for i, j in zip(det_N_dt, det_box):
-            if j not in off_box_list:
-                if H2[i][j] == H2_max:
-                    if O2[i][j] >= O2_max:
-                        H2_max = H2[i][j]
-                        O2_max = O2[i][j]
-                        i_max = i
-                        j_max = j
-                if H2[i][j] > H2_max:
-                    H2_max = H2[i][j]
-                    O2_max = O2[i][j]
-                    i_max = i
-                    j_max = j
-                if H2[i][j] > H2_recommend and O2[i][j] > O2_min:
-                    H2_recommend = H2[i][j]
-                    O2_recommend = O2[i][j]
-                    i_recommend = i
-                    j_recommend = j
-                if H2[i][j] == H2_recommend and O2[i][j] > O2_min:
-                    if O2[i][j] >= O2_recommend:
-                        H2_recommend = H2[i][j]
-                        O2_recommend = O2[i][j]
-                        i_recommend = i
-                        j_recommend = j
-        return i_max, j_max, i_recommend, j_recommend
-
-
     def write_rnd(self):
-
         rnd_file = glob.glob(self.path_geom + "rnd*")
         rnd_file_new = self.path_geom + "rnd_" + self.task_name + '.txt'
 
@@ -746,6 +605,7 @@ class Ui(QtWidgets.QMainWindow, Form):
                 f.write('\nPNTFIRE Y= ' + '%1.2f' % self.printFire[1] + ' X= ' + '%1.2f' % self.printFire[0] + ' Z= ' + '%1.2f' % self.printFire[2] + ' P0(Pa)= ' + '%1.0f' % self.p[self.fire_i_recommend][self.fire_box_recommend] + ' T0(K)= 1072 ENDINFO')
                 f.write('\nENDTEXT')
             os.rename(file, rnd_file_new)
+
     def write_sostav(self):
         sostav_file = glob.glob(self.path_geom + "SOSTAV_" + self.task_name + '.txt')
         if not sostav_file:
@@ -758,6 +618,7 @@ class Ui(QtWidgets.QMainWindow, Form):
                     for param in self.H2[self.fire_i_recommend], self.O2[self.fire_i_recommend], self.v[self.fire_i_recommend],  self.t[self.fire_i_recommend], self.p[self.fire_i_recommend]:
                         f.write('%5.4f' % param[box] + ' ')
                     f.write('\n')
+
     def write_cmp(self):
         cmp_file = glob.glob(self.path_cmp + self.task_name + '.cmp')
         if not cmp_file:
@@ -765,6 +626,7 @@ class Ui(QtWidgets.QMainWindow, Form):
         for file in cmp_file:
             with open(file, 'w') as f:
                 f.write('Identification \nuser 2369\npRoBleM ' + self.task_name + '\nvariant 0\ntype (egak_3D)\n0113\nComputer\nprocessor_cart(dim0=1 dim1=1 dim2='+ str(self.spinBoxNt.value()*self.spinBoxNn.value()) + ')\nProcess\nGas(gas_type=pressure)\nTransport(approximation=donor)\nBurning(fire_velocity = -1)\nMonotonization()\n\nCommand\n\npre_init(ni=92 nj=92 nk=176 math_comp=3 phys_comp=3)\n\nfirecon_rnd(rnd_' + self.task_name + '.txt)\n//read(filetype=rec n=Lastrecord)\ninstall(tau= 0.000001)     //!!!\ninstall(tau_max= 0.00005)   //!!! \ngraph(vol_concentration beta ro ro_aver e p_aver e_aver p H2_fire O2_fire N_fire H2O_fire H2_initial O2_initial N_initial H2O_initial temp_fire temp_initial speed_fire uz_aver) \ntrap\ntime++ 0 0.1 1.001 record(compress=yes n=Lastrecord)\nstep++ 1 1 500000 sensor(sensor ' + self.task_name + '_dat.txt ' + self.task_name + '_out)\ntime++ 0 0.1 1.001 graph(vol_concentration beta ro ro_aver e p_aver e_aver p H2_fire O2_fire N_fire H2O_fire H2_initial O2_initial N_initial H2O_initial temp_fire temp_initial speed_fire uz_aver)\ntime= 1.001 endproblem\nendtrap\ncalc')
+
     def write_cmd(self):
         cmd_file = glob.glob(self.path_work + self.task_name + '.cmd')
         if not cmd_file:
@@ -774,9 +636,8 @@ class Ui(QtWidgets.QMainWindow, Form):
                 f.write(
                     '#!/bin/sh \n#SBATCH -U "dep 816, user kuhtevich, theme 00000.000, prog FIRECON, task ' + self.task_name + ', cust SAEP, tel 28774, class 99" \n#SBATCH -N '+ str(self.spinBoxNn.value())  +' -n '+ str(self.spinBoxNn.value()*self.spinBoxNt.value()) +' --ntasks-per-node=' + str(self.spinBoxNt.value()) + ' --nice=0  -p BATCH -t 300:00:00 -o go_' + self.task_name + '.o%j -e go_' + self.task_name + '.e%j	\nexport MPIRUN_USE_TREES=1	\nexport MPIRUN_USE_GATHER_TREE=1 \nexport MPIRUN_USE_BCAST_TREE=1 \nexport VIADEV_USE_SHMEM_COLL=0 \n/opt/slurm/bin/srun --mpi=mvapich ./EGAK_3 ' + self.task_name)
 
-        # endregion
-    def write_egak3d(self):
 
+    def write_egak3d(self):
         egak_file = glob.glob(self.path_work + 'egak3d.ini')
         if not egak_file:
             egak_file.append(self.path_work + 'egak3d.ini')
@@ -784,6 +645,7 @@ class Ui(QtWidgets.QMainWindow, Form):
             with open(file, 'w') as f:
                 f.write(
                     'computer\nmp100\nos\nlinux\nmemory\n1200\ninstruction\n/seg3/saep/kuhtevich/hanh/vab/' + self.task_name + '/razrez_3d/_cmp/\nout\n/seg3/saep/kuhtevich/hanh/vab/' + self.task_name + '/razrez_3d/_out/\nsystem_dll\n/seg3/saep/kuhtevich/hanh/vab/dab/' + self.task_name + '/razrez_3d/dlls/system_dlls\nprocess_dll\n/seg3/saep/kuhtevich/hanh/vab/' + self.task_name + '/razrez_3d/dlls/process_dlls\ncommand_dll\n/seg3/saep/kuhtevich/hanh/vab/' + self.task_name + '/razrez_3d/dlls/command_dlls\nmedium_dll\n/seg3/saep/kuhtevich/hanh/vab/' + self.task_name + '/razrez_3d/dlls/medium_dlls\nnonstandart_dll\n/seg3/saep/kuhtevich/hanh/vab/' + self.task_name + '/razrez_3d/dlls/nonstandart_dlls\ntest_dll\n/seg3/saep/kuhtevich/hanh/vab/' + self.task_name + '/razrez_3d/dlls/test_dlls\nmgd_2d\n/seg3/saep/kuhtevich/hanh/vab/' + self.task_name + '/razrez_3d/dlls/test_dlls\nbound_table\n/seg3/saep/kuhtevich/hanh/vab/' + self.task_name + '/razrez_3d/bound_table/\nrecord\n/seg3/saep/kuhtevich/hanh/vab/' + self.task_name + '/razrez_3d/record/\n/seg3/saep/kuhtevich/hanh/vab/' + self.task_name + '/razrez_3d/record1/\ntimetable\n/seg3/saep/kuhtevich/hanh/vab/' + self.task_name + '/razrez_3d/timetable/\ngraph_rezult\n/seg3/saep/kuhtevich/hanh/vab/' + self.task_name + '/razrez_3d/_graph/\ncontroll\n/seg3/saep/kuhtevich/hanh/vab/' + self.task_name + '/razrez_3d/controll/\nmirror\n/seg3/saep/kuhtevich/hanh/vab/' + self.task_name + '/razrez_3d/mirror/\nshadow\n/seg3/saep/kuhtevich/hanh/vab/' + self.task_name + '/razrez_3d/shadow/\ninf\n/seg3/saep/kuhtevich/hanh/vab/' + self.task_name + '/razrez_3d/inf/\nprotocol\n/seg3/saep/kuhtevich/hanh/vab/' + self.task_name + '/razrez_3d/protocol/\nlook2\n/seg3/saep/kuhtevich/hanh/vab/' + self.task_name + '/razrez_3d/look2/\nstandart_rebrov\n/seg3/saep/kuhtevich/hanh/vab/' + self.task_name + '/razrez_3d/standart_rebrov/\ngd\n/seg3/saep/kuhtevich/hanh/vab/' + self.task_name + '/razrez_3d/gd/\ncommon\n/seg3/saep/kuhtevich/hanh/vab/' + self.task_name + '/razrez_3d/common/\nprocessing\n/seg3/saep/kuhtevich/hanh/vab/' + self.task_name + '/razrez_3d/processing/\ninf_processing\n/seg3/saep/kuhtevich/hanh/vab/' + self.task_name + '/razrez_3d/inf_processing/\nefr\n/seg3/saep/kuhtevich/hanh/vab/' + self.task_name + '/razrez_3d/_efr/')
+
     def write_sensor(self):
 
         file_sensor = glob.glob(self.path_sensor + self.task_name + "_dat.txt")
@@ -795,6 +657,7 @@ class Ui(QtWidgets.QMainWindow, Form):
                 for N,point in enumerate(self.sensor_points):
                     print_line = str(N) + ' ' + '%1.2f' % (point[0]) + ' ' + '%1.2f' % (point[1]) + ' ' +'%1.2f' % (point[2]) + ' x y z p t endinfo\n'
                     f.write(print_line)
+
     def write_combust_param(self):
 
         file = glob.glob("combust_param.txt")
