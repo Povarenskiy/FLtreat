@@ -6,8 +6,7 @@ from PyQt5.QtCore import *
 import sys, glob, os
 import shutil, math
 
-
-
+import statusvariable as stv
 
 class paint_plane(QtWidgets.QWidget):
 
@@ -205,7 +204,6 @@ class Paint(QtWidgets.QWidget):
         super(QtWidgets.QWidget, self).__init__(parent)
 
         self.printFire = [0,0,0]
-        # self.sensor_points = []
         self.palitra = {0:'#ffffff',1:'#000000',2:'#ffffff',3:'#ff0000',4:'#00ff00',5:'#0000ff',6:'#ffff00',7:'#ff00fd',8:'#00ffff',9:'#810000',10:'#008100',11:'#000081',12:'#818100',13:'#810081',14:'#008181',15:'#c1c1c1',16:'#818181',17:'#9a9aff',18:'#9a3066',19:'#ffffcd',20:'#cdffff',21:'#660066',22:'#ff8181',23:'#0066cd',24:'#cdcdff',25:'#000081',26:'#ff00fd',27:'#ffff00',28:'#00ffff',29:'#810081',30:'#810000',31:'#008181',32:'#0000ff',33:'#00cdff',34:'#cdffff',35:'#cdffcd',36:'#ffff9a',37:'#9acdff',38:'#ff9acd',39:'#cf9aff',40:'#ffcd9a',41:'#ff0000',42:'#00ff00',43:'#0000ff',44:'#ffff00',45:'#ff00fd',46:'#00ffff',47:'#810000',48:'#008100',49:'#000081',50:'#818100',51:'#810081',52:'#008181',53:'#c1c1c1',54:'#818181',55:'#9a9aff',56:'#9a3066',57:'#ffffcd',58:'#cdffff',59:'#660066',60:'#ff8181',61:'#0066cd',62:'#cdcdff',63:'#000081',64:'#ff00fd',65:'#ffff00',66:'#00ffff',67:'#810081',68:'#810000',69:'#008181',70:'#0000ff',71:'#00cdff',72:'#cdffff',73:'#cdffcd',74:'#ffff9a',75:'#9acdff',76:'#ff9acd',77:'#cf9aff',78:'#ffcd9a',79:'#2f66ff',80:'#ffffff',81:'#ff0000',82:'#00ff00',83:'#0000ff',84:'#ffff00',85:'#ff00fd',86:'#00ffff',87:'#810000',88:'#008100',89:'#000081',90:'#818100',91:'#810081',92:'#008181',93:'#c1c1c1',94:'#818181',95:'#9a9aff',96:'#9a3066',97:'#ffffcd',98:'#cdffff',99:'#660066',100:'#ff8181',101:'#0066cd',102:'#cdcdff',103:'#000081',104:'#ff00fd',105:'#ffff00',106:'#00ffff',107:'#810081',108:'#810000',109:'#008181',110:'#0000ff',111:'#00cdff',112:'#cdffff',113:'#cdffcd',114:'#ffff9a',115:'#9acdff',116:'#ff9acd',117:'#cf9aff',118:'#ffcd9a',119:'#2f66ff',120:'#ffffff',121:'#ff0000',122:'#00ff00',123:'#0000ff',124:'#ffff00',125:'#ff00fd',126:'#00ffff',127:'#810000',128:'#008100',129:'#000081',130:'#818100',131:'#810081',132:'#008181',133:'#c1c1c1',134:'#818181',135:'#9a9aff',136:'#9a3066',137:'#ffffcd',138:'#cdffff',139:'#660066',140:'#ff8181',141:'#0066cd',142:'#cdcdff',143:'#000081',144:'#ff00fd',145:'#ffff00',146:'#00ffff',147:'#810081',148:'#810000',149:'#008181',150:'#0000ff',151:'#00cdff'}
         self.mModified, self.mModifiedFP = False, False
         self.X, self.Y = 0, 0
@@ -217,15 +215,12 @@ class Paint(QtWidgets.QWidget):
         self.width  = width
         self.height = height
 
-
-
         self.setObjectName(parent.objectName())
         self.setGeometry(0, 0, self.width, self.height)
         self.dx = self.height/(len(geom) -3)
         self.dy = self.width/(len(geom[0]))
 
     def paintEvent(self, e):
-
         qp = QPainter()
         qp.begin(self)
         self.drawRectangles(qp)
@@ -234,18 +229,18 @@ class Paint(QtWidgets.QWidget):
         if self.mModified == True:
             self.drawSensor(qp)
         qp.end()
-    def drawRectangles(self, qp):
 
+    def drawRectangles(self, qp):
         for x in range(0, len(self.geom)-3):
             for y in range(0, len(self.geom[x])):
-                # if self.geom[x][y] == window.fire_box_recommend:
-                #     qp.setPen(QColor(self.palitra[self.geom[x][y]]))
-                #     qp.setBrush(Qt.BrushStyle(Qt.Dense4Pattern))
-                #     qp.drawRect(round(self.dy * y), round(self.dx * x), round(self.dy), round(self.dx))
-                # else:
-                qp.setPen(QColor(self.palitra[self.geom[x][y]]))
-                qp.setBrush(QColor(self.palitra[self.geom[x][y]]))
-                qp.drawRect(round(self.dy*y), round(self.dx*x), round(self.dy), round(self.dx))
+                if self.geom[x][y] == stv.init_combust_box:
+                    qp.setPen(QColor(self.palitra[self.geom[x][y]]))
+                    qp.setBrush(Qt.BrushStyle(Qt.Dense4Pattern))
+                    qp.drawRect(round(self.dy * y), round(self.dx * x), round(self.dy), round(self.dx))
+                else:
+                    qp.setPen(QColor(self.palitra[self.geom[x][y]]))
+                    qp.setBrush(QColor(self.palitra[self.geom[x][y]]))
+                    qp.drawRect(round(self.dy*y), round(self.dx*x), round(self.dy), round(self.dx))
         qp.setPen(QColor('White'))
         qp.setFont(QFont('Decorative', 10))
         qp.drawText(self.width-90, 20,'H=' + '%1.1f' % self.minH + ':' + '%1.1f' % self.maxH + ' m')
@@ -262,7 +257,7 @@ class Paint(QtWidgets.QWidget):
             qp.drawLine(round(Y-0.9*self.dy), round(X+self.dx), round(Y+1.1*self.dy), round(X-1*self.dx))
     
     def drawSensor(self, qp):
-        for point in (self.sensor_points):
+        for point in (stv.sensor_points):
             if point[4] == self.tab_name:
                 X = point[0]
                 Y = point[1]
@@ -291,13 +286,11 @@ class Paint(QtWidgets.QWidget):
                         X = x * self.dx + 0.5*self.dx
                         Y = y * self.dy + 0.5*self.dy
                         if self.geom[x][y]!= 1:
-                            # if window.radioButton.isChecked():
-                            #     self.printFire[0],self.printFire[1],self.printFire[2]=X,Y,Z
-                            #     # Ui.update_printfire_from_paint(self)
-                            #     self.mModifiedFP = True
-                            # else:
-                            N = len(self.sensor_points)
-                            self.sensor_points.append([X, Y, Z, N, self.tab_name])
-                            # Ui.update_sensor_from_paint(self)
-                            self.mModified = True
+                            if stv.place_fire_radio_button_checked:
+                                self.printFire[0],self.printFire[1],self.printFire[2]=X,Y,Z
+                                self.mModifiedFP = True
+                            else:
+                                sensor_number = len(stv.sensor_points) 
+                                stv.sensor_points.append([X, Y, Z, sensor_number, self.tab_name])
+                                self.mModified = True
         self.update()

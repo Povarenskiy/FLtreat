@@ -1,4 +1,6 @@
 import functions
+import statusvariable as stv
+import sys, glob, os, shutil
 
 from PyQt5 import uic, QtWidgets
 from PyQt5.QtWidgets import *
@@ -7,12 +9,8 @@ from PyQt5.QtCore import *
 
 from paint import Paint
 
-import sys, glob, os
-import shutil, math
-
 
 Form,_ = uic.loadUiType("Interface.ui")
-
 
 class MyProcessClass(QThread):
         stepChanged = pyqtSignal(int)
@@ -23,7 +21,7 @@ class MyProcessClass(QThread):
 
         def run(self):
             while True:
-                self.data += 5
+                self.data += 1
                 self.stepChanged.emit(self.data)
                 self.msleep(100) 
 
@@ -63,10 +61,13 @@ class Ui(QtWidgets.QMainWindow, Form):
         self.sensor_points = []
         self.tab_paint = {}
 
+        width = round(self.width() * 0.5)
+        height = round(self.height() * 0.75)
+
         for file in self.geom_files:
             tab = QtWidgets.QWidget()
-            tab.setFixedWidth(round(self.width()/2))
-            tab.setFixedHeight(round(self.height()*0.75))
+            tab.setFixedWidth(width)
+            tab.setFixedHeight(height)
             tab.setObjectName(file)
             self.tabWidget.addTab(tab, file.split('\\')[3].split('.')[0])
             self.tab_paint[file] = Paint(tab, self.geom[file], self.geom_minH[file], self.geom_maxH[file], tab.width(), tab.height(), file)
@@ -93,7 +94,7 @@ class Ui(QtWidgets.QMainWindow, Form):
         super(Ui, self).__init__()
         
         thread = MyProcessClass()
-        thread.stepChanged.connect(self.setPointsOnTable)
+        thread.stepChanged.connect(self.refreash_app)
         thread.start()
 
         self.setupUi(self)
@@ -105,36 +106,32 @@ class Ui(QtWidgets.QMainWindow, Form):
         self.setup_tabs()
 
 
+    def refreash_app(self):
+        stv.place_fire_radio_button_checked = self.radioButton.isChecked()
+        stv.init_combust_box = self.fire_box_max
+        self.tab_paint[self.geom_files[self.tabWidget.currentIndex()]].update()
+        self.add_point_ontable()
+
     def updateSlider(self):
         self.label_O2.setText('%1.2f' % (self.horizontalSlider.value()/10) + '%')
-        self.fire_i_max, self.fire_box_max, self.fire_i_recommend, self.fire_box_recommend = self.find_max(self.H2,self.O2,self.combust_i,self.combust_box,self.det_i,self.det_box)
-        self.tab_paint[self.geom_files[self.tabWidget.currentIndex()]].update()
+        self.fire_i_max, self.fire_box_max, self.fire_i_recommend, self.fire_box_recommend = functions.find_max(self.H2,self.O2,self.combust_i,self.combust_box,self.det_i,self.det_box)
+        
 
-
-    def setTableWidth(self):
-        width = self.table.verticalHeader().width()
-        width += self.table.horizontalHeader().length()
-        if self.table.verticalScrollBar().isVisible():
-            width += self.table.verticalScrollBar().width()
-        width += self.table.frameWidth() * 2
-        self.table.setFixedWidth(width)
-
-
-    def setPointsOnTable(self):
-        if len(self.sensor_points) > 0:
-            self.table.setRowCount(len(self.sensor_points))
+    def add_point_ontable(self):
+        self.table.setRowCount(len(stv.sensor_points))
+        if len(stv.sensor_points) > 0:
             for i in 0,1,2:
-                self.table.setItem(len(self.sensor_points) - 1, i, QtWidgets.QTableWidgetItem('%1.2f' % self.sensor_points[-1][i]))
-            self.setTableWidth()
+                self.table.setItem(len(stv.sensor_points) - 1, i, QtWidgets.QTableWidgetItem('%1.2f' % stv.sensor_points[-1][i]))
+        
 
-    def setPrintFireCoord(self, X, Y, Z):
-        self.printFireX = X
-        self.printFireY = Y
-        self.printFireZ = Z
-        self.radioButton_2.setChecked(True)
-        line = '\nPNTFIRE   Y= ' + '%1.2f' % Y + ' X= ' + '%1.2f' % X + ' Z= ' + '%1.2f' % Z + ' P0(Pa)= ' + '%1.0f' % \
-               self.p[self.fire_i_recommend][self.fire_box_recommend] + ' T0(K)= 1072 ENDINFO'
-        self.add_text(line)
+    # def setPrintFireCoord(self, X, Y, Z):
+    #     self.printFireX = X
+    #     self.printFireY = Y
+    #     self.printFireZ = Z
+    #     self.radioButton_2.setChecked(True)
+    #     line = '\nPNTFIRE   Y= ' + '%1.2f' % Y + ' X= ' + '%1.2f' % X + ' Z= ' + '%1.2f' % Z + ' P0(Pa)= ' + '%1.0f' % \
+    #            self.p[self.fire_i_recommend][self.fire_box_recommend] + ' T0(K)= 1072 ENDINFO'
+    #     self.add_text(line)
 
     def set_taskName(self):
         name = self.comboBox.currentText()
@@ -191,16 +188,9 @@ class Ui(QtWidgets.QMainWindow, Form):
             self.add_text_from_spisok(k, spisok)
 
     def button_deleteClicked(self):
-        if len(self.sensor_points) > 0:
-            del self.sensor_points[-1]
-            del(self.tab_paint[self.geom_files[self.tabWidget.currentIndex()]].sensor_points[-1])
-
-        if len(self.sensor_points) == 0:
-            self.table.removeRow(0)
-            self.tab_paint[self.geom_files[self.tabWidget.currentIndex()]].mModified = False
-        else:
-            self.setPointsOnTable()
-        self.tab_paint[self.geom_files[self.tabWidget.currentIndex()]].update()
+        if len(stv.sensor_points):
+            del stv.sensor_points[-1]
+            
 
     def button_writeClicked(self):
 
