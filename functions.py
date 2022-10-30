@@ -159,3 +159,6 @@ def get_spisok(i, j, Time, H2, O2, v, p, t):
         else:
             line.append(x[i])
     return line
+
+
+    
