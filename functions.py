@@ -2,12 +2,11 @@ import glob
 
 
 def set_path(task_name):
-    path = task_name
-    path_geom = path + '\\razrez_3d\\geom\\'
+    path_geom = task_name + '\\razrez_3d\\geom\\'
     path_limits = 'limits\\'
-    path_cmp = path + '\\razrez_3d\\_cmp\\'
-    path_sensor = path + '\\razrez_3d\\sensor\\'
-    path_work = path + '\\work\\'
+    path_cmp = task_name + '\\razrez_3d\\_cmp\\'
+    path_sensor = task_name + '\\razrez_3d\\sensor\\'
+    path_work = task_name + '\\work\\'
     return path_geom, path_limits, path_cmp, path_sensor, path_work
 
 def read_limitsfiles(path):

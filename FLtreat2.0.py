@@ -52,7 +52,7 @@ class Ui(QtWidgets.QMainWindow, Form):
         self.PrnScrButtonSostav.clicked.connect(self.button_PrnScrButtonSostav)
         self.writeCPButton.clicked.connect(self.button_write_points)
         self.writeAllCPButton.clicked.connect(self.button_write_allpoints)
-        self.horizontalSlider.valueChanged.connect(self.updateSlider)
+        self.horizontalSlider.valueChanged.connect(self.change_minO2_slider)
         self.openDirButton.clicked.connect(self.getDirectory)
 
 
@@ -94,7 +94,7 @@ class Ui(QtWidgets.QMainWindow, Form):
         super(Ui, self).__init__()
         
         thread = MyProcessClass()
-        thread.stepChanged.connect(self.refreash_app)
+        thread.stepChanged.connect(self.thread_app)
         thread.start()
 
         self.setupUi(self)
@@ -106,22 +106,27 @@ class Ui(QtWidgets.QMainWindow, Form):
         self.setup_tabs()
 
 
-    def refreash_app(self):
+    def thread_app(self):
         stv.place_fire_radio_button_checked = self.radioButton.isChecked()
         stv.init_combust_box = self.fire_box_max
+        self.update_table()
+        self.update_tab()
+
+
+    def update_tab(self):
         self.tab_paint[self.geom_files[self.tabWidget.currentIndex()]].update()
-        self.add_point_ontable()
 
-    def updateSlider(self):
-        self.label_O2.setText('%1.2f' % (self.horizontalSlider.value()/10) + '%')
-        self.fire_i_max, self.fire_box_max, self.fire_i_recommend, self.fire_box_recommend = functions.find_max(self.H2,self.O2,self.combust_i,self.combust_box,self.det_i,self.det_box)
-        
 
-    def add_point_ontable(self):
+    def update_table(self):
         self.table.setRowCount(len(stv.sensor_points))
         if len(stv.sensor_points) > 0:
             for i in 0,1,2:
                 self.table.setItem(len(stv.sensor_points) - 1, i, QtWidgets.QTableWidgetItem('%1.2f' % stv.sensor_points[-1][i]))
+
+
+    def change_minO2_slider(self):
+        self.label_O2.setText('%1.2f' % (self.horizontalSlider.value()/10) + '%')
+        self.fire_i_max, self.fire_box_max, self.fire_i_recommend, self.fire_box_recommend = functions.find_max(self.H2,self.O2,self.combust_i,self.combust_box,self.det_i,self.det_box)
         
 
     # def setPrintFireCoord(self, X, Y, Z):
@@ -133,12 +138,12 @@ class Ui(QtWidgets.QMainWindow, Form):
     #            self.p[self.fire_i_recommend][self.fire_box_recommend] + ' T0(K)= 1072 ENDINFO'
     #     self.add_text(line)
 
-    def set_taskName(self):
-        name = self.comboBox.currentText()
-        if name == 'firecon':
-            name = '00000'
-        return name
 
+    # def setup_task_name(self):
+    #     current_name = self.comboBox.currentText()
+    #     self.task_name = current_name if current_name != 'firecon' else '00000'       
+
+        
     def set_sostav(self, i):
         sostav =  {}
         for param,name in zip( (self.H2[i], self.O2[i], self.v[i], self.t[i], self.p[i]),('H2','O2','v','t','p')):
@@ -159,16 +164,16 @@ class Ui(QtWidgets.QMainWindow, Form):
     #     window.sensor_points.append(sensor_coord)
     #     window.setPointsOnTable()
 
-    def update_printfire_from_paint(self):
-        prinFire_coord = [0, 0, 0]
-        prinFire_coord[0] = (self.printFire[0] / self.dx * 0.495) - 22.5
-        prinFire_coord[1] = (self.printFire[1] / self.dy * 0.495) - 22.5
-        prinFire_coord[2] = self.printFire[2]
+    # def update_printfire_from_paint(self):
+    #     prinFire_coord = [0, 0, 0]
+    #     prinFire_coord[0] = (self.printFire[0] / self.dx * 0.495) - 22.5
+    #     prinFire_coord[1] = (self.printFire[1] / self.dy * 0.495) - 22.5
+    #     prinFire_coord[2] = self.printFire[2]
 
-        window.printFire = prinFire_coord
+    #     window.printFire = prinFire_coord
 
-        line = '\nPNTFIRE   Y= ' + '%1.2f' % window.printFire[1] + ' X= ' + '%1.2f' % window.printFire[0] + ' Z= ' + '%1.2f' % window.printFire[2] + ' P0(Pa)= ' + '%1.0f' % window.p[window.fire_i_recommend][window.fire_box_recommend] + ' T0(K)= 1072 ENDINFO'
-        window.add_text(line)
+    #     line = '\nPNTFIRE   Y= ' + '%1.2f' % window.printFire[1] + ' X= ' + '%1.2f' % window.printFire[0] + ' Z= ' + '%1.2f' % window.printFire[2] + ' P0(Pa)= ' + '%1.0f' % window.p[window.fire_i_recommend][window.fire_box_recommend] + ' T0(K)= 1072 ENDINFO'
+    #     window.add_text(line)
 
     def button_write_allpoints(self):
         for i, j in zip(self.combust_i, self.combust_box):
@@ -177,6 +182,7 @@ class Ui(QtWidgets.QMainWindow, Form):
         for i, j in zip(self.det_i, self.det_box):
             spisok = functions.get_spisok(i, j, self.Time, self.H2, self.O2, self.v, self.p, self.t)
             self.add_text_from_spisok('Detonation', spisok)
+
 
     def button_write_points(self):
         self.add_text('BOX   Time           H2         O2           v             p         t')
@@ -187,18 +193,25 @@ class Ui(QtWidgets.QMainWindow, Form):
                     k +=' Detonation'
             self.add_text_from_spisok(k, spisok)
 
+
     def button_deleteClicked(self):
         if len(stv.sensor_points):
-            del stv.sensor_points[-1]
+            stv.sensor_points.pop()
             
 
     def button_writeClicked(self):
 
-        self.task_name = self.set_taskName()
-        if os.path.exists(self.task_name + '\\') != True:
-            shutil.copytree("firecon\\", self.task_name + '\\')
+        new_name = self.comboBox.currentText()
+        
+        if new_name == 'firecon':
+            new_name = '00000'  
 
-        self.path_geom, self.path_limits, self.path_cmp, self.path_sensor, self.path_work = self.set_path(self.task_name)
+        self.task_name = new_name
+
+        if os.path.exists(new_name + '\\') != True:
+            shutil.copytree("firecon\\", new_name + '\\')
+
+        self.path_geom, self.path_limits, self.path_cmp, self.path_sensor, self.path_work = functions.set_path(self.task_name)
 
         self.write_rnd()
         self.write_sostav()
@@ -286,7 +299,7 @@ class Ui(QtWidgets.QMainWindow, Form):
                     if row.split()[0] != 'FILEPRN' and row.split()[0] != 'PNTFIRE' and row.split()[0] != 'ENDTEXT':
                         f.write(row)
                 f.write('\nFILEPRN SOSTAV_' + self.task_name + '.txt')
-                f.write('\nPNTFIRE Y= ' + '%1.2f' % self.printFire[1] + ' X= ' + '%1.2f' % self.printFire[0] + ' Z= ' + '%1.2f' % self.printFire[2] + ' P0(Pa)= ' + '%1.0f' % self.p[self.fire_i_recommend][self.fire_box_recommend] + ' T0(K)= 1072 ENDINFO')
+                f.write('\nPNTFIRE Y= ' + '%1.2f' % stv.init_combust_point_coord[1] + ' X= ' + '%1.2f' % stv.init_combust_point_coord[0] + ' Z= ' + '%1.2f' % stv.init_combust_point_coord[2] + ' P0(Pa)= ' + '%1.0f' % self.p[self.fire_i_recommend][self.fire_box_recommend] + ' T0(K)= 1072 ENDINFO')
                 f.write('\nENDTEXT')
             os.rename(file, rnd_file_new)
 
@@ -355,7 +368,7 @@ class Ui(QtWidgets.QMainWindow, Form):
                 f.write('%1.0f' % self.Time[self.fire_i_recommend] + '  ')
                 for i in self.H2,self.O2,self.v,self.p,self.t:
                     f.write('%1.3f' % i[self.fire_i_recommend][self.fire_box_recommend] + ' ')
-                f.write('\nPNTFIRE Y= ' + '%1.2f' % self.printFire[0] + ' X= ' + '%1.2f' % self.printFire[1] + ' Z= ' + '%1.2f' % self.printFire[2] + ' P0(Pa)= ' + '%1.0f' % self.p[self.fire_i_recommend][self.fire_box_recommend] + ' T0(K)= 1072 ENDINFO')
+                f.write('\nPNTFIRE Y= ' + '%1.2f' % stv.init_combust_point_coord[0] + ' X= ' + '%1.2f' % stv.init_combust_point_coord[1] + ' Z= ' + '%1.2f' % stv.init_combust_point_coord[2] + ' P0(Pa)= ' + '%1.0f' % self.p[self.fire_i_recommend][self.fire_box_recommend] + ' T0(K)= 1072 ENDINFO')
 
 
     def getDirectory(self):
