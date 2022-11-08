@@ -1,3 +1,9 @@
-BOX  Time     H2    O2     v      p        t 
-36   3725  0.125 0.143 0.185 167594.500 133.501 
-PNTFIRE Y= 341.35 X= 341.64 Z= 6.00 P0(Pa)= 167594 T0(K)= 1072 ENDINFO
+Time        3725.000000
+Box           36.000000
+H2             0.125230
+O2             0.143033
+v              0.185261
+p         167594.500000
+t            133.500700
+regims         1.000000
+Name: filtered, dtype: float64PNTFIRE Y= 4.97 X= -6.41 Z= 6.0 P0(Pa)= 167594 T0(K)= 1072 ENDINFO

@@ -263,17 +263,7 @@ class Paint(QtWidgets.QWidget):
                 
                 qp.setPen(QColor(color))
                 qp.drawRect(round(self.dy * y), round(self.dx * x), round(self.dy), round(self.dx))
-                    
-            
-                
-                # if self.geom[x][y] == stv.init_combust_box:
-                #     qp.setPen(QColor(self.palitra[self.geom[x][y]]))
-                #     qp.setBrush(Qt.BrushStyle(Qt.Dense4Pattern))
-                #     qp.drawRect(round(self.dy * y), round(self.dx * x), round(self.dy), round(self.dx))
-                # else:
-                #     qp.setPen(QColor(self.palitra[self.geom[x][y]]))
-                #     qp.setBrush(QColor(self.palitra[self.geom[x][y]]))
-                #     qp.drawRect(round(self.dy*y), round(self.dx*x), round(self.dy), round(self.dx))
+    
         qp.setPen(QColor('White'))
         qp.setFont(QFont('Decorative', 10))
         qp.drawText(self.width-90, 20,'H=' + '%1.1f' % self.minH + ':' + '%1.1f' % self.maxH + ' m')
@@ -323,6 +313,8 @@ class Paint(QtWidgets.QWidget):
                                 stv.init_combust_point_coord[0] = X
                                 stv.init_combust_point_coord[1] = Y
                                 stv.init_combust_point_coord[2] = Z
+                                
+                                
                                 self.mModifiedFP = True
                             else:
                                 sensor_number = len(stv.sensor_points) 
